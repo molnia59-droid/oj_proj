@@ -274,3 +274,108 @@ Logic:
 - inactive accounts receive HTTP 403
 - missing sessions receive HTTP 401
 - require_roles performs backend authorization
+
+
+
+4) added:
+
+1. app/routers/health.py
+
+Endpoint:
+GET /api/health
+
+Purpose:
+- checks whether the API is running
+
+
+2. app/routers/auth.py
+
+Endpoints:
+- POST /api/auth/register
+- POST /api/auth/login
+- POST /api/auth/logout
+- GET /api/auth/me
+
+Logic:
+- register creates a student account
+- login clears the old session
+- login then stores user_id
+- me returns the current user
+- me updates last_seen_at through the dependency
+- logout clears both the session and last_seen_at(so it will show that person , left immediately, it problem of name)
+
+
+3. app/routers/problems.py
+
+Endpoints:
+- POST /api/problems
+- GET /api/problems
+- GET /api/problems/{problem_id}
+- PUT /api/problems/{problem_id}
+- DELETE /api/problems/{problem_id}
+
+Permissions:
+- GET endpoints require an authenticated user
+- POST, PUT, and DELETE require teacher or admin
+
+
+4. app/routers/submissions.py
+
+Endpoints:
+- POST /api/submissions
+- GET /api/submissions
+- GET /api/submissions/{submission_id}
+- POST /api/submissions/{submission_id}/rejudge
+- GET /api/submissions/{submission_id}/logs
+
+Logic:
+- create returns HTTP 202
+- the judge runs through BackgroundTasks
+- filtering and pagination are supported
+- rejudge requires teacher or admin
+
+
+5. app/routers/users.py
+
+Endpoints:
+- GET /api/users
+- GET /api/users/{user_id}
+- PUT /api/users/{user_id}
+
+Access:
+- administrator only
+
+
+6. app/routers/logs.py
+
+Endpoints:
+- GET /api/logs
+- GET /api/audit-logs
+
+Access:
+- judge logs: teacher and admin
+- audit logs: admin only
+
+
+7. app/routers/admin.py
+
+Endpoints:
+- POST /api/admin/backups
+- GET /api/admin/backups
+- POST /api/admin/backups/{backup_id}/restore
+
+Access:
+- administrator only
+
+
+8. Unified response format
+
+Successful response:
+
+{
+  "code": 200,
+  "message": "ok",
+  "data": ...
+}
+
+Errors are handled by the exception handlers from Part 1
