@@ -1,12 +1,5 @@
 
-This part uses:
-- database.py
-- models
-- utilities
-- comparator.py
-
-
-
+2)
 1. app/repositories/user_repository.py
 
 Handles database operations for the users table
@@ -151,3 +144,133 @@ Logic:
 - individual test logs are returned
 - the temporary directory is removed in finally
 
+
+
+3)
+
+1. app/services/auth_service.py
+
+Main functions:
+- register_user
+- authenticate_user
+- ensure_initial_admin
+
+Logic:
+- every new registered user receives the student role
+- usernames are checked for uniqueness
+- passwords are hashed with bcrypt
+- login verifies the password hash
+- blocked users cannot log in
+- an initial administrator is created when the database is empty
+
+
+2. app/services/user_service.py
+
+Main functions:
+- get_user_list
+- get_user_detail
+- update_user_account
+
+Logic:
+- is_active is converted to a Boolean
+- is_online is calculated from last_seen_at
+- an administrator cannot accidentally disable their own account
+- role changes and account blocking are written to audit logs
+
+
+3. app/services/problem_service.py
+
+Main functions:
+- create_new_problem
+- get_problem_list
+- get_problem_detail
+- update_existing_problem
+- delete_existing_problem
+
+Logic:
+- students do not receive hidden test cases
+- teachers and administrators receive complete problem data
+- JSON samples and tags are converted to Python lists
+- soft deletion is performed through the repository
+
+
+4. app/services/submission_service.py
+
+Main functions:
+- process_submission
+- create_new_submission
+- get_submission_detail
+- get_submission_list
+- prepare_submission_rejudge
+- get_submission_logs
+- get_full_log_list
+
+Logic:
+- a new submission starts with pending status
+- a background task runs process_submission
+- the status changes to running
+- the judge evaluates every test
+- result and score are stored
+- students can see only their own submissions
+- teachers and administrators can see all submissions
+- rejudge clears the old result and runs the judge again
+- full log searches create an audit action
+
+
+5. app/services/log_view_service.py
+
+Main functions:
+- to_teacher_log_view
+- to_student_log_view
+
+Teacher and administrator view:
+- receives complete test logs
+
+Student view:
+- does not receive input or expected output for hidden tests
+- does not receive hidden stdout
+- receives a safe error message
+- absolute paths are removed
+
+
+6. app/services/audit_service.py
+
+Main functions:
+- record_audit
+- get_audit_log_list
+
+Logic:
+- provides one shared way to create audit records
+- supports pagination and audit log filters
+
+
+7. app/services/backup_service.py
+
+Main functions:
+- create_backup
+- get_backup_list
+- restore_backup
+
+Logic:
+- the database is copied with the safe SQLite backup API
+- manifest.json is created
+- PRAGMA integrity_check validates the backup
+- backup_id in the manifest must match the requested backup
+- a safety copy is created before restore
+- the previous database is restored if an error occurs
+
+
+8. app/dependencies/auth.py
+
+Main functions:
+- get_current_user
+- require_roles
+
+Logic:
+- user_id is read from the session cookie
+- the user is loaded from SQLite on every request
+- role and is_active are always current
+- last_seen_at is updated
+- inactive accounts receive HTTP 403
+- missing sessions receive HTTP 401
+- require_roles performs backend authorization
