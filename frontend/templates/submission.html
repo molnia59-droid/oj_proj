@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>Submission {{ submission.id }}</h1>
+        <p>{{ submission.problem_id }} · user {{ submission.user_id }}</p>
+    </div>
+    {% if current_user.role in ["teacher", "admin"] and submission.status in ["finished", "failed"] %}
+    <form action="/web/submissions/{{ submission.id }}/rejudge" method="post">
+        <button class="button secondary" type="submit">Rejudge</button>
+    </form>
+    {% endif %}
+</div>
+
+<section class="card">
+    <dl class="summary-list">
+        <div><dt>Status</dt><dd>{{ submission.status }}</dd></div>
+        <div><dt>Result</dt><dd>{{ submission.result or "-" }}</dd></div>
+        <div><dt>Score</dt><dd>{{ submission.score }}</dd></div>
+        <div><dt>Time</dt><dd>{{ '%.3f'|format(submission.total_time or 0) }} s</dd></div>
+    </dl>
+</section>
+
+<section class="card">
+    <h2>Source code</h2>
+    <pre>{{ submission.source_code }}</pre>
+</section>
+
+<section class="card">
+    <h2>Test logs</h2>
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>Case</th>
+                    <th>Result</th>
+                    <th>Score</th>
+                    <th>Time</th>
+                    <th>Message</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for log in logs %}
+                <tr>
+                    <td>{{ log.case_id }}</td>
+                    <td>{{ log.result }}</td>
+                    <td>{{ log.score }}/{{ log.maximum_score }}</td>
+                    <td>{{ '%.3f'|format(log.time_used or 0) }} s</td>
+                    <td>{{ log.message }}</td>
+                </tr>
+                {% if log.stdout is defined or log.stderr %}
+                <tr>
+                    <td colspan="5">
+                        {% if log.stdout is defined %}<h3>Output</h3><pre>{{ log.stdout }}</pre>{% endif %}
+                        {% if log.stderr %}<h3>Error</h3><pre>{{ log.stderr }}</pre>{% endif %}
+                        {% if log.expected_output is defined %}<h3>Expected</h3><pre>{{ log.expected_output }}</pre>{% endif %}
+                    </td>
+                </tr>
+                {% endif %}
+                {% else %}
+                <tr><td colspan="5">Waiting for judge</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</section>
+{% endblock %}

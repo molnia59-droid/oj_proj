@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="page-header">
+    <div>
+        <span class="tag">{{ problem.id }}</span>
+        <span class="tag">{{ problem.difficulty }}</span>
+        <h1>{{ problem.title }}</h1>
+    </div>
+    <div class="inline-actions">
+        <a class="button" href="/web/problems/{{ problem.id }}/submit">Submit</a>
+        {% if current_user.role in ["teacher", "admin"] %}
+        <a class="button secondary" href="/web/problems/{{ problem.id }}/edit">Edit</a>
+        <form action="/web/problems/{{ problem.id }}/delete" method="post">
+            <button class="button danger" type="submit">Delete</button>
+        </form>
+        {% endif %}
+    </div>
+</div>
+
+<div class="two-column-layout">
+    <article class="content-column">
+        <section class="card">
+            <h2>Description</h2>
+            <p class="preserve-lines">{{ problem.description }}</p>
+        </section>
+
+        <section class="card">
+            <h2>Input</h2>
+            <p class="preserve-lines">{{ problem.input_description }}</p>
+        </section>
+
+        <section class="card">
+            <h2>Output</h2>
+            <p class="preserve-lines">{{ problem.output_description }}</p>
+        </section>
+
+        {% if problem.constraints %}
+        <section class="card">
+            <h2>Constraints</h2>
+            <p class="preserve-lines">{{ problem.constraints }}</p>
+        </section>
+        {% endif %}
+
+        <section class="card">
+            <h2>Samples</h2>
+            {% for sample in problem.samples %}
+            <div class="example-grid">
+                <div>
+                    <h3>Input</h3>
+                    <pre>{{ sample.input }}</pre>
+                </div>
+                <div>
+                    <h3>Output</h3>
+                    <pre>{{ sample.output }}</pre>
+                </div>
+            </div>
+            {% endfor %}
+        </section>
+
+        {% if problem.test_cases %}
+        <section class="card">
+            <h2>Test cases</h2>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Case</th>
+                            <th>Input</th>
+                            <th>Output</th>
+                            <th>Score</th>
+                            <th>Hidden</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for test in problem.test_cases %}
+                        <tr>
+                            <td>{{ test.case_id }}</td>
+                            <td><pre class="table-code">{{ test.input }}</pre></td>
+                            <td><pre class="table-code">{{ test.output }}</pre></td>
+                            <td>{{ test.score }}</td>
+                            <td>{{ "Yes" if test.is_hidden else "No" }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </section>
+        {% endif %}
+    </article>
+
+    <aside class="sidebar-column">
+        <section class="card">
+            <h2>Limits</h2>
+            <dl class="summary-list">
+                <div><dt>Time</dt><dd>{{ problem.time_limit }} s</dd></div>
+                <div><dt>Memory</dt><dd>{{ problem.memory_limit }} MB</dd></div>
+                <div><dt>Language</dt><dd>Python</dd></div>
+            </dl>
+        </section>
+    </aside>
+</div>
+{% endblock %}

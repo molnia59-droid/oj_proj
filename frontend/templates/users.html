@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>Users</h1>
+        <p>{{ data["total"] }} total</p>
+    </div>
+</div>
+
+<section class="card table-card">
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Username</th>
+                    <th>Role</th>
+                    <th>Account</th>
+                    <th>Status</th>
+                    <th>Last seen</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for user in data["items"] %}
+                <tr>
+                    <td>{{ user.id }}</td>
+                    <td>{{ user.username }}</td>
+                    <td>{{ user.role }}</td>
+                    <td>{{ "Enabled" if user.is_active else "Blocked" }}</td>
+                    <td>{{ "Online" if user.is_online else "Offline" }}</td>
+                    <td>{{ user.last_seen_at or "-" }}</td>
+                    <td>
+                        {% if user.id != current_user.id %}
+                        <form class="inline-form" action="/web/users/{{ user.id }}/update" method="post">
+                            <select name="role">
+                                {% for value in ["student", "teacher", "admin"] %}
+                                <option value="{{ value }}" {% if user.role == value %}selected{% endif %}>{{ value }}</option>
+                                {% endfor %}
+                            </select>
+                            <select name="is_active">
+                                <option value="1" {% if user.is_active %}selected{% endif %}>Enabled</option>
+                                <option value="0" {% if not user.is_active %}selected{% endif %}>Blocked</option>
+                            </select>
+                            <button class="button secondary small" type="submit">Save</button>
+                        </form>
+                        {% else %}
+                        Current user
+                        {% endif %}
+                    </td>
+                </tr>
+                {% else %}
+                <tr><td colspan="7">No users</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</section>
+{% endblock %}

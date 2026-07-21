@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="page-header">
+    <div>
+        <span class="tag">{{ problem.id }}</span>
+        <h1>Submit solution</h1>
+    </div>
+    <a class="button secondary" href="/web/problems/{{ problem.id }}">Back</a>
+</div>
+
+<form class="card stack-form" action="/web/problems/{{ problem.id }}/submit" method="post">
+    <label>
+        Python source code
+        <textarea class="code-editor" name="source_code" required>{{ source_code }}</textarea>
+    </label>
+    <button class="button" type="submit">Submit</button>
+</form>
+{% endblock %}

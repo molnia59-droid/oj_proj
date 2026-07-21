@@ -379,3 +379,129 @@ Successful response:
 }
 
 Errors are handled by the exception handlers from Part 1
+
+
+
+1. app/routers/web.py
+
+HTML routes were added
+
+Main pages:
+- /
+- /web/login
+- /web/register
+- /web/problems
+- /web/problems/new
+- /web/problems/{problem_id}
+- /web/problems/{problem_id}/edit
+- /web/problems/{problem_id}/submit
+- /web/submissions
+- /web/submissions/{submission_id}
+- /web/users
+
+Main logic:
+- loads the user from the session
+- updates last_seen_at
+- checks web roles
+- processes HTML forms
+- converts form fields into Pydantic models
+- supports flash messages
+- redirects after POST requests
+- automatically distributes test scores
+- preserves constraints while editing
+
+
+2. frontend/templates/base.html
+
+Shared layout:
+- header
+- navigation
+- current user
+- logout
+- flash messages
+- CSS connection
+- local display of UTC timestamps through JavaScript
+
+
+3. Authentication templates
+
+login.html
+- login form
+
+register.html
+- registration form
+
+
+4. Problem templates
+
+problems.html
+- problem list
+- pagination
+
+problem.html
+- problem statement
+- samples
+- submit, edit, and delete buttons according to role
+
+problem_form.html
+- create and edit problem
+- description, input, output, and constraints fields
+- samples
+- test cases
+- hidden tests
+- score mode
+
+submit.html
+- source code submission form
+
+
+5. Submission templates
+
+submissions.html
+- submission list
+- result
+- score
+- status
+
+submission.html
+- source code
+- overall result
+- allowed test log details
+
+
+6. users.html
+
+Administrator page:
+- username
+- role
+- Enabled or Blocked
+- Online or Offline
+- Last seen
+- role update
+- account blocking and enabling
+
+
+ (message.html
+Simple page for displaying an error or result message)
+
+
+8. frontend/static/styles.css
+
+Styles for:
+- layout
+- forms
+- tables
+- buttons
+- badges
+- pagination
+- responsive behavior
+
+
+9. frontend/static/problem_form.js
+
+Problem form logic:
+- add a test case
+- remove a test case
+- automatic score mode
+- manual score mode
+- validate that the total score equals 100

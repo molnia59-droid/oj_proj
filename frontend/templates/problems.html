@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>Problems</h1>
+        <p>{{ data["total"] }} total</p>
+    </div>
+    {% if current_user.role in ["teacher", "admin"] %}
+    <a class="button" href="/web/problems/new">Create problem</a>
+    {% endif %}
+</div>
+
+<div class="card-list">
+    {% for problem in data["items"] %}
+    <article class="card problem-card">
+        <div>
+            <span class="tag">{{ problem.id }}</span>
+            <span class="tag">{{ problem.difficulty }}</span>
+            <h2><a href="/web/problems/{{ problem.id }}">{{ problem.title }}</a></h2>
+            <div class="meta-row">
+                <span>{{ problem.time_limit }} s</span>
+                <span>{{ problem.memory_limit }} MB</span>
+                {% for tag in problem.tags %}<span>{{ tag }}</span>{% endfor %}
+            </div>
+        </div>
+        <a class="button secondary" href="/web/problems/{{ problem.id }}/submit">Submit</a>
+    </article>
+    {% else %}
+    <section class="card">No problems</section>
+    {% endfor %}
+</div>
+
+{% if data["total_pages"] > 1 %}
+<nav class="pagination">
+    {% if data["page"] > 1 %}
+    <a class="button secondary small" href="/web/problems?page={{ data["page"] - 1 }}&page_size={{ data["page_size"] }}">Previous</a>
+    {% endif %}
+    <span>Page {{ data["page"] }} of {{ data["total_pages"] }}</span>
+    {% if data["page"] < data["total_pages"] %}
+    <a class="button secondary small" href="/web/problems?page={{ data["page"] + 1 }}&page_size={{ data["page_size"] }}">Next</a>
+    {% endif %}
+</nav>
+{% endif %}
+{% endblock %}

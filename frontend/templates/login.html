@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="auth-card card">
+    <h1>Login</h1>
+    <form class="stack-form" action="/web/login" method="post">
+        <label>
+            Username
+            <input name="username" value="{{ username|default('') }}" required autofocus>
+        </label>
+        <label>
+            Password
+            <input type="password" name="password" required>
+        </label>
+        <button class="button" type="submit">Login</button>
+    </form>
+    <a href="/web/register">Create account</a>
+</section>
+{% endblock %}

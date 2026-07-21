@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>Submissions</h1>
+        <p>{{ data["total"] }} total</p>
+    </div>
+</div>
+
+<form class="card filter-form" method="get" action="/web/submissions">
+    <label>Problem ID<input name="problem_id" value="{{ filters.problem_id }}"></label>
+    {% if current_user.role in ["teacher", "admin"] %}
+    <label>User ID<input type="number" min="1" name="user_id" value="{{ filters.user_id }}"></label>
+    {% endif %}
+    <label>Status
+        <select name="status">
+            <option value="">All</option>
+            {% for value in ["pending", "running", "finished", "failed"] %}
+            <option value="{{ value }}" {% if filters.status == value %}selected{% endif %}>{{ value }}</option>
+            {% endfor %}
+        </select>
+    </label>
+    <label>Result
+        <select name="result">
+            <option value="">All</option>
+            {% for value in ["AC", "WA", "RE", "TLE", "SE"] %}
+            <option value="{{ value }}" {% if filters.result == value %}selected{% endif %}>{{ value }}</option>
+            {% endfor %}
+        </select>
+    </label>
+    <button class="button secondary" type="submit">Filter</button>
+</form>
+
+<section class="card table-card">
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>User</th>
+                    <th>Problem</th>
+                    <th>Status</th>
+                    <th>Result</th>
+                    <th>Score</th>
+                    <th>Created</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for submission in data["items"] %}
+                <tr>
+                    <td><a href="/web/submissions/{{ submission.id }}">{{ submission.id }}</a></td>
+                    <td>{{ submission.user_id }}</td>
+                    <td>{{ submission.problem_id }}</td>
+                    <td>{{ submission.status }}</td>
+                    <td>{{ submission.result or "-" }}</td>
+                    <td>{{ submission.score }}</td>
+                    <td>{{ submission.created_at }}</td>
+                </tr>
+                {% else %}
+                <tr><td colspan="7">No submissions</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</section>
+
+{% if data["total_pages"] > 1 %}
+<nav class="pagination">
+    {% if data["page"] > 1 %}<a class="button secondary small" href="?page={{ data["page"] - 1 }}">Previous</a>{% endif %}
+    <span>Page {{ data["page"] }} of {{ data["total_pages"] }}</span>
+    {% if data["page"] < data["total_pages"] %}<a class="button secondary small" href="?page={{ data["page"] + 1 }}">Next</a>{% endif %}
+</nav>
+{% endif %}
+{% endblock %}

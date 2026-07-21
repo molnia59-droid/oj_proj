@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ title|default("Mini Online Judge") }}</title>
+    <link rel="stylesheet" href="/static/styles.css">
+    {% if refresh_page %}
+    <meta http-equiv="refresh" content="2">
+    {% endif %}
+</head>
+<body>
+    <header class="site-header">
+        <a class="brand" href="/web/problems">Mini OJ</a>
+
+        {% if current_user %}
+        <nav class="main-nav">
+            <a href="/web/problems">Problems</a>
+            <a href="/web/submissions">Submissions</a>
+            {% if current_user.role == "admin" %}
+            <a href="/web/users">Users</a>
+            {% endif %}
+        </nav>
+
+        <div class="account-menu">
+            <span>{{ current_user.username }} · {{ current_user.role }}</span>
+            <form action="/web/logout" method="post">
+                <button class="button secondary small" type="submit">Logout</button>
+            </form>
+        </div>
+        {% endif %}
+    </header>
+
+    <main class="page-shell">
+        {% if flash %}
+        <div class="alert {{ flash.kind }}">{{ flash.message }}</div>
+        {% endif %}
+
+        {% if error %}
+        <div class="alert error">{{ error }}</div>
+        {% endif %}
+
+        {% block content %}{% endblock %}
+    </main>
+
+    {% block scripts %}{% endblock %}
+</body>
+</html>

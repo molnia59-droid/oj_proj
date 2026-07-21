@@ -1,0 +1,167 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="page-header">
+    <h1>{{ "Create problem" if mode == "create" else "Edit problem" }}</h1>
+    <a class="button secondary" href="{{ '/web/problems' if mode == 'create' else '/web/problems/' ~ problem_id }}">Cancel</a>
+</div>
+
+<form class="problem-form" action="{{ '/web/problems/new' if mode == 'create' else '/web/problems/' ~ problem_id ~ '/edit' }}" method="post" data-problem-form>
+    <section class="card">
+        <h2>Basic information</h2>
+        <div class="form-grid">
+            {% if mode == "create" %}
+            <label>
+                Problem ID
+                <input name="problem_id" pattern="[A-Za-z0-9_-]{1,32}" value="{{ form_data.id }}" required>
+            </label>
+            {% endif %}
+            <label class="wide-field">
+                Title
+                <input name="title" maxlength="100" value="{{ form_data.title }}" required>
+            </label>
+            <label>
+                Difficulty
+                <select name="difficulty" required>
+                    {% for value in ["easy", "medium", "hard"] %}
+                    <option value="{{ value }}" {% if form_data.difficulty == value %}selected{% endif %}>{{ value }}</option>
+                    {% endfor %}
+                </select>
+            </label>
+            <label>
+                Time limit in seconds
+                <input type="number" min="0.01" max="60" step="0.01" name="time_limit" value="{{ form_data.time_limit }}" required>
+            </label>
+            <label>
+                Memory limit in MB
+                <input type="number" min="1" max="4096" name="memory_limit" value="{{ form_data.memory_limit }}" required>
+            </label>
+            <label class="wide-field">
+                Tags
+                <input name="tags" value="{{ form_data.tags }}" placeholder="arrays, math">
+            </label>
+        </div>
+    </section>
+
+    <section class="card stack-form">
+        <h2>Statement</h2>
+        <label>
+            Description
+            <textarea name="description" required>{{ form_data.description }}</textarea>
+        </label>
+        <label>
+            Input description
+            <textarea name="input_description" required>{{ form_data.input_description }}</textarea>
+        </label>
+        <label>
+            Output description
+            <textarea name="output_description" required>{{ form_data.output_description }}</textarea>
+        </label>
+
+        <label>
+            Constraints
+            <textarea name="constraints">{{ form_data.constraints }}</textarea>
+        </label>
+    </section>
+
+    <section class="card">
+        <h2>Sample</h2>
+        <div class="example-grid">
+            <label>
+                Input
+                <textarea name="sample_input">{{ form_data.sample.input }}</textarea>
+            </label>
+            <label>
+                Output
+                <textarea name="sample_output">{{ form_data.sample.output }}</textarea>
+            </label>
+        </div>
+    </section>
+
+    <section class="card">
+        <div class="section-heading">
+            <h2>Test cases</h2>
+            <button id="add-test-button" class="button secondary" type="button">Add test</button>
+        </div>
+
+        <div class="score-mode-options">
+            <label><input type="radio" name="score_mode" value="auto" {% if form_data.score_mode != 'manual' %}checked{% endif %}> Automatic score</label>
+            <label><input type="radio" name="score_mode" value="manual" {% if form_data.score_mode == 'manual' %}checked{% endif %}> Manual score</label>
+            <span id="score-summary"></span>
+        </div>
+
+        <div id="test-case-list" class="repeating-list">
+            {% for test in form_data.test_cases %}
+            <fieldset class="repeat-card test-case-card">
+                <legend>Test <span data-test-number>{{ loop.index }}</span></legend>
+                <button class="remove-test-button" type="button" data-remove-test>Remove</button>
+                <div class="test-form-grid">
+                    <label>
+                        Case ID
+                        <input name="test_case_id" value="{{ test.case_id }}">
+                    </label>
+                    <label class="test-textarea">
+                        Input
+                        <textarea name="test_input">{{ test.input }}</textarea>
+                    </label>
+                    <label class="test-textarea">
+                        Output
+                        <textarea name="test_output">{{ test.output }}</textarea>
+                    </label>
+                    <label>
+                        Score
+                        <input class="test-score-input" type="number" min="0" max="100" name="test_score" value="{{ test.score }}" required>
+                    </label>
+                    <label>
+                        Hidden
+                        <select name="test_hidden">
+                            <option value="1" {% if test.is_hidden %}selected{% endif %}>Yes</option>
+                            <option value="0" {% if not test.is_hidden %}selected{% endif %}>No</option>
+                        </select>
+                    </label>
+                </div>
+            </fieldset>
+            {% endfor %}
+        </div>
+    </section>
+
+    <div class="sticky-actions">
+        <button class="button" type="submit">Save</button>
+    </div>
+</form>
+
+<template id="test-case-template">
+    <fieldset class="repeat-card test-case-card">
+        <legend>Test <span data-test-number></span></legend>
+        <button class="remove-test-button" type="button" data-remove-test>Remove</button>
+        <div class="test-form-grid">
+            <label>
+                Case ID
+                <input name="test_case_id">
+            </label>
+            <label class="test-textarea">
+                Input
+                <textarea name="test_input"></textarea>
+            </label>
+            <label class="test-textarea">
+                Output
+                <textarea name="test_output"></textarea>
+            </label>
+            <label>
+                Score
+                <input class="test-score-input" type="number" min="0" max="100" name="test_score" value="0" required>
+            </label>
+            <label>
+                Hidden
+                <select name="test_hidden">
+                    <option value="1" selected>Yes</option>
+                    <option value="0">No</option>
+                </select>
+            </label>
+        </div>
+    </fieldset>
+</template>
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/problem_form.js" defer></script>
+{% endblock %}
