@@ -3,10 +3,7 @@ from fastapi.responses import JSONResponse
 
 from app.dependencies.auth import get_current_user
 from app.models.auth import LoginRequest, RegisterRequest
-from app.repositories.user_repository import (
-    clear_user_presence,
-    touch_user_last_seen,
-)
+from app.repositories.user_repository import touch_user_last_seen
 from app.services.auth_service import (
     authenticate_user,
     register_user,
@@ -114,20 +111,18 @@ async def get_current_user_endpoint(
 
 
 @router.post("/logout")
-async def logout(request: Request):
+async def logout(
+    request: Request,
+):
     """
-    clear the current session cookie data
+    log out the current user
     """
 
-    user_id = request.session.get("user_id")
-
-    if user_id is not None:
-        clear_user_presence(user_id)
-
+    # remove authentication data from the signed session cookie
     request.session.clear()
 
     return {
         "code": 200,
-        "message": "logout successful",
+        "message": "logged out",
         "data": None,
     }

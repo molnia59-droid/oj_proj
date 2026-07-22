@@ -21,7 +21,6 @@ from app.models.problem import (
 from app.models.submission import SubmissionCreate
 from app.models.user import UserRole, UserUpdate
 from app.repositories.user_repository import (
-    clear_user_presence,
     find_by_id,
     touch_user_last_seen,
 )
@@ -547,16 +546,14 @@ async def register_action(
 
 
 @router.post("/web/logout")
-async def logout_action(request: Request):
+async def web_logout(
+    request: Request,
+):
     """
-    clear the signed browser session
+    log out the current web user
     """
 
-    user_id = request.session.get("user_id")
-
-    if user_id is not None:
-        clear_user_presence(user_id)
-
+    # remove the user id from the signed session cookie
     request.session.clear()
 
     return RedirectResponse(

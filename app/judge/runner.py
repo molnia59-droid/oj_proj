@@ -44,6 +44,23 @@ def prepare_submission_directory(
     return submission_directory
 
 
+def _prepare_stdin(input_data: str) -> bytes:
+    """
+    pass every entered value as a separate input line
+    """
+
+    # split the entered text into separate values
+    values = input_data.split()
+
+    # place every value on its own stdin line
+    prepared_input = "\n".join(values)
+
+    if prepared_input:
+        prepared_input += "\n"
+
+    return prepared_input.encode("utf-8")
+
+
 def _decode_timeout_output(output_bytes: bytes) -> str:
     """
     decode partial output collected after a timeout
@@ -79,9 +96,9 @@ def _execute_process(
     )
 
     try:
-        # send one testcase through stdin and wait only for the allowed time
+        # send the complete multiline testcase through stdin
         stdout_bytes, stderr_bytes = process.communicate(
-            input=input_data.encode("utf-8"),
+            input=_prepare_stdin(input_data),
             timeout=time_limit,
         )
 

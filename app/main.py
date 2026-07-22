@@ -1,22 +1,32 @@
 import logging
 import os
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from fastapi import FastAPI
+from fastapi.staticfiles import StaticFiles
 from starlette.middleware.sessions import SessionMiddleware
 
 from app.repositories.database import init_db
-from app.repositories.user_repository import clear_all_user_presence
+from app.routers.admin import router as admin_router
+from app.routers.auth import router as auth_router
+from app.routers.health import router as health_router
+from app.routers.logs import router as logs_router
+from app.routers.problems import router as problems_router
+from app.routers.submissions import router as submissions_router
+from app.routers.users import router as users_router
+from app.routers.web import router as web_router
 from app.services.auth_service import ensure_initial_admin
 from app.utils.exception_handlers import register_exception_handlers
 
 
-# configure application logging
-logging.basicConfig(
-    level=logging.INFO,
-)
-
+# configure standard application logs for local development
+logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+# resolve the static directory once when the module is imported
+BASE_DIR = Path(__file__).resolve().parents[1]
+STATIC_DIR = BASE_DIR / "frontend" / "static"
 
 
 @asynccontextmanager
@@ -24,90 +34,54 @@ async def lifespan(
     _app: FastAPI,
 ):
     """
-    prepare the database when the application starts
+    prepare the application resources
     """
 
-    # create all database tables if they do not exist
+    # create the database schema
     init_db()
 
-    # remove old online status values after a server restart
-    clear_all_user_presence()
+    # create the initial administrator if required
+    ensure_initial_admin()
 
-    # create the first administrator when the users table is empty
-    admin = ensure_initial_admin()
-
-    logger.info(
-        "initial administrator is available as %s",
-        admin["username"],
-    )
-
-    # allow fastapi to start processing requests
+    # allow the application to process requests
     yield
-
-    # mark every user as offline during a normal shutdown
-    clear_all_user_presence()
-
 
 # create the central fastapi application
 app = FastAPI(
     title="Mini Online Judge",
-    version="0.3.0",
     lifespan=lifespan,
 )
 
+# convert validation and unhandled errors into the required response format
+register_exception_handlers(app)
 
-# register handlers for validation and unexpected errors
-register_exception_handlers(
-    app,
-)
-
-
-# read the cookie signing secret from an environment variable
+# sign session cookies with a configurable secret
 session_secret = os.getenv(
     "SESSION_SECRET",
     "development-only-change-this-secret",
 )
 
-
-# add signed session cookie support
 app.add_middleware(
     SessionMiddleware,
     secret_key=session_secret,
     session_cookie="oj_session",
-    max_age=60 * 60 * 24 * 7,
     same_site="lax",
     https_only=False,
 )
 
+# expose css and javascript files under the static url
+app.mount(
+    "/static",
+    StaticFiles(directory=STATIC_DIR),
+    name="static",
+)
 
-@app.get("/")
-async def root():
-    """
-    show that the third project part is running
-    """
-
-    return {
-        "code": 200,
-        "message": "ok",
-        "data": {
-            "project": "mini online judge",
-            "part": 3,
-            "status": "running",
-        },
-    }
-
-
-@app.get("/api/health")
-async def health_check():
-    """
-    return the current application status
-    """
-
-    return {
-        "code": 200,
-        "message": "ok",
-        "data": {
-            "status": "running",
-            "part": 3,
-        },
-    }
+# connect every api and html router in one visible place
+app.include_router(health_router)
+app.include_router(auth_router)
+app.include_router(problems_router)
+app.include_router(submissions_router)
+app.include_router(users_router)
+app.include_router(logs_router)
+app.include_router(admin_router)
+app.include_router(web_router)

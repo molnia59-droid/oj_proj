@@ -215,36 +215,3 @@ def touch_user_last_seen(user_id: int) -> None:
         connection.close()
 
 
-def clear_user_presence(user_id: int) -> None:
-    """
-    mark one user offline immediately
-    """
-
-    connection = get_connection()
-
-    try:
-        connection.execute(
-            "UPDATE users SET last_seen_at = NULL WHERE id = ?",
-            (user_id,),
-        )
-        connection.commit()
-
-    finally:
-        connection.close()
-
-
-def clear_all_user_presence() -> None:
-    """
-    mark every user offline when the server starts or stops
-    """
-
-    connection = get_connection()
-
-    try:
-        connection.execute(
-            "UPDATE users SET last_seen_at = NULL"
-        )
-        connection.commit()
-
-    finally:
-        connection.close()

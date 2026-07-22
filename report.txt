@@ -1,0 +1,319 @@
+
+This project is a small Online Judge system developed with FastAPI, SQLite, Jinja2, HTML, CSS, and JavaScript.
+The system allows users to register, login, view programming problems, submit Python solutions, and receive automatic judging results.
+
+The project supports three roles:
+Student:
+view problems
+submit solutions
+view personal submissions
+view safe judge information
+Teacher:
+create problems
+edit problems
+delete problems
+view submissions
+view full judge logs
+rejudge submissions
+
+Administrator:
+perform all teacher operations
+manage users
+change roles
+block or enable accounts
+view audit logs
+create and restore backups
+
+Backend:
+Python 3.12
+FastAPI
+Uvicorn
+Pydantic
+Starlette SessionMiddleware
+
+Database:
+SQLite
+sqlite3
+
+Frontend:
+Jinja2
+HTML
+CSS
+JavaScript
+
+Security:
+bcrypt password hashing
+signed session cookies
+role-based access control
+hidden test protection
+error sanitization
+
+Testing:
+pytest
+
+
+Project Structure
+
+app/models contains Pydantic models for validating registration, login, problem, user, and submission data.
+app/repositories contains SQL queries and direct database operations.
+app/services contains business logic.
+app/routers contains API and web routes.
+app/judge contains the code execution and evaluation system.
+app/utils contains password, time, text, and exception helper functions.
+frontend/templates contains Jinja2 HTML templates.
+frontend/static contains CSS and JavaScript.
+tests contains automated tests.
+
+Database Design
+
+The project uses SQLite.
+users table stores:
+id
+username
+password_hash
+role
+is_active
+last_seen_at
+created_at
+is_active field means that the account is enabled. It is not an online-status field
+last_seen_at field stores the real time of the user's last activity
+
+The problems table stores:
+problem id
+title
+description
+input description
+output description
+constraints
+difficulty
+tags
+samples
+time limit
+memory limit
+creator
+timestamps
+deletion status
+
+The test_cases table stores:
+case id
+related problem
+input
+expected output
+score
+hidden status
+
+The submissions table stores:
+user
+problem
+source code
+status
+result
+score
+execution time
+timestamps
+
+The test_logs table stores the result of each individual test.
+The audit_logs table stores important administrative operations.
+The backups table stores backup metadata.
+
+Authentication and Cookies
+
+Passwords are stored as hash
+During registration, password is hashed with bcrypt.
+During login,  entered password is checked against the saved hash.
+After a succssful login, only user_id is stored in the signed session cookie.
+
+
+request.session["user_id"] = user["id"]
+The cookie does not store the password, password hash, or full user record.
+For every protected request, the backend loads the current user data from SQLite.
+This means that role changes and account blocking become effective immediately.
+During logout, the application runs:
+request.session.clear()
+The last_seen_at value is preserved. It is not deleted because it represents the real time of the last activity.
+
+Role-Based Authorization
+
+frontend hides unavailable buttons, but the backend still checks every protected operation.
+Students cannot create, edit, or delete problems.
+Teachers can manage problems and judge results.
+Administrators can manage users, backups, and audit logs.
+This prevents users from bypassing permissions by sending requests manually.
+
+Teachers and administrators can create programming problems.
+
+
+Problem identifiers are strings containing letters, digits, underscores or hyphens. A problem contains a public sample and at least one testcase.
+Testcase scores must total exactly 100. Hidden tests are returned only to teachers and administrators.
+Problem deletion uses soft deletion so historical submissions remain valid.
+
+Each problem contains:
+title
+description
+input format
+output format
+constraints
+samples
+test cases
+time limit
+memory limit
+
+The system checks that:
+test case ids are unique
+there is at least one test
+the total score equals 100
+
+A deleted problem disappears from normal lists, but old submissions and logs remain available.
+
+Submission and Judge Process
+
+When a student submits code:
+
+1. A submission is created with pending status.
+2. A background task starts the judge.
+3. The status changes to running.
+4. The source code is saved to a temporary main.py file.
+5. The program runs in a separate subprocess.
+6. Input is passed through stdin.
+7. stdout and stderr are captured.
+8. The output is compared with the expected output.
+9. A log is created for each test.
+10. The final result and score are stored.
+11. Temporary files are removed.
+
+The judge does not use eval() or exec()
+Student code is executed in a separate Python process
+The system assigns points only for accepted tests
+
+Every testcase stores result, score, time, exit code, input, expected output, stdout, stderr and message. Long fields are truncated to 4000 characters.
+Students cannot receive hidden input, hidden expected output or hidden stdout. Absolute paths are removed from visible errors.
+Administrative actions are stored in `audit_logs`.
+
+
+The judge normalizes line endings before comparison.
+Windows CRLF line endings are converted to LF.
+Trailing spaces and extra empty lines at the end are ignored.
+Leading spaces and internal spaces are preserved.
+
+The time limit applies to the complete submission.
+It is not reset for every test.
+The judge calculates:
+remaining time = total limit already used time
+
+For example:
+Total limit: 2.0 seconds
+First test: 0.7 seconds
+Remaining time: 1.3 seconds
+
+The next test receives only the remaining time.
+
+If no time remains, the result is TLE.
+
+Students cannot see:
+hidden test input
+hidden expected output
+complete hidden stdout
+absolute server paths
+Teachers and administrators can view full logs.
+Error messages are sanitized before being shown to students.
+Judge output is truncated before being stored.
+
+
+All timestamps are stored in UTC using ISO 8601.
+Example:
+2026-07-22T08:35:20Z
+
+
+The last_seen_at field is updated when an authenticated user sends a request.
+Online status is calculated from recent activity.
+The project does not permanently store is_online.
+Logout clears only the session cookie and preserves last_seen_at.
+
+Backup and Restore
+
+Administrators can create database backups.
+
+Each backup contains:
+oj.db
+manifest.json
+
+Before restoring a backup, the system checks:
+that the backup exists
+that the manifest is valid
+that backup_id matches
+that SQLite integrity_check succeeds
+
+
+frontend uses Jinja2 templates.
+Main pages:
+login
+registration
+problem list
+problem details
+problem creation and editing
+solution submission
+submission list
+submission details
+user management
+
+JavaScript is used for:
+adding tests
+removing tests
+automatic score distribution
+local time conversion
+
+Authorization is still checked by the backend.
+
+Error Handling
+
+The API uses a unified response format.
+
+Example:
+
+{
+    "code": 200,
+    "message": "ok",
+    "data": {}
+}
+
+
+The project includes tests for:
+registration
+login
+logout
+sessions
+roles
+blocking users
+problem CRUD
+submissions
+AC
+WA
+RE
+TLE
+partial scoring
+total shared time limit
+hidden test security
+output normalization
+backup and restore
+HTML pages
+online status
+
+
+as description required we have
+bcrypt password hashing
+signed cookies
+backend role checks
+inactive-account checks
+hidden test filtering
+sanitized errors
+subprocess execution
+backup validation
+{no eval()
+no exec()} 
+
+
+instead of js jinjia2 was used(inja2 templates provide login, registration, problem management, submission history, result pages and user management.
+HTML contains only necessary labels and actions. JS is limited to dynamic testcase blocks and score calculation.)
+
+first version used last_seen_at as refference whether user is online and deleted it when he logs out , 
+then if none = offline, now it stores last_seen and just directly offlines 
