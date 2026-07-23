@@ -13,7 +13,7 @@ from app.judge.comparator import compare_output
 
 logger = logging.getLogger(__name__)
 
-# keep submitted source files outside the project so uvicorn reload ignores them
+# keep submitted source files outside the project folder
 TEMP_ROOT = Path(tempfile.gettempdir()) / "mini_online_judge"
 
 
@@ -22,21 +22,26 @@ def prepare_submission_directory(
     source_code: str,
 ) -> Path:
     """
-    create one isolated directory and save the submitted python file
+    create one temporary submission directory
     """
 
-    # create the shared operating system temp folder when needed
-    TEMP_ROOT.mkdir(parents=True, exist_ok=True)
+    TEMP_ROOT.mkdir(
+        parents=True,
+        exist_ok=True,
+    )
 
-    # add a random suffix so two submissions can never share files
     submission_directory = TEMP_ROOT / (
         f"submission_{submission_id}_{uuid4().hex}"
     )
+
     submission_directory.mkdir()
 
-    # save exactly one executable source file for the child process
-    code_path = submission_directory / "main.py"
-    code_path.write_text(
+    source_file = (
+        submission_directory
+        / "main.py"
+    )
+
+    source_file.write_text(
         source_code,
         encoding="utf-8",
     )
@@ -44,30 +49,42 @@ def prepare_submission_directory(
     return submission_directory
 
 
-def _prepare_stdin(input_data: str) -> bytes:
+def _prepare_stdin(
+    input_data: str,
+) -> bytes:
     """
-    pass every entered value as a separate input line
+    preserve the original input line structure
     """
 
-    # split the entered text into separate values
-    values = input_data.split()
+    # normalize windows and old mac line endings
+    prepared_input = input_data.replace(
+        "\r\n",
+        "\n",
+    ).replace(
+        "\r",
+        "\n",
+    )
 
-    # place every value on its own stdin line
-    prepared_input = "\n".join(values)
-
-    if prepared_input:
+    # add one final newline without changing existing lines
+    if (
+        prepared_input
+        and not prepared_input.endswith("\n")
+    ):
         prepared_input += "\n"
 
-    return prepared_input.encode("utf-8")
+    return prepared_input.encode(
+        "utf-8"
+    )
 
 
-def _decode_timeout_output(output_bytes: bytes) -> str:
+def _decode_output(
+    output_data: bytes,
+) -> str:
     """
-    decode partial output collected after a timeout
+    decode diagnostic output safely
     """
 
-    # timeout logs are diagnostic so undecodable bytes are replaced safely
-    return output_bytes.decode(
+    return output_data.decode(
         "utf-8",
         errors="replace",
     )
@@ -79,27 +96,31 @@ def _execute_process(
     time_limit: float,
 ) -> dict:
     """
-    run student code in a blocking subprocess inside a worker thread
+    execute submitted code in a blocking subprocess
     """
 
-    # use the same python interpreter that runs the fastapi application
     process = subprocess.Popen(
         [
             sys.executable,
             "-I",
             "main.py",
         ],
-        cwd=str(submission_directory),
+        cwd=str(
+            submission_directory
+        ),
         stdin=subprocess.PIPE,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
     )
 
     try:
-        # send the complete multiline testcase through stdin
-        stdout_bytes, stderr_bytes = process.communicate(
-            input=_prepare_stdin(input_data),
-            timeout=time_limit,
+        stdout_bytes, stderr_bytes = (
+            process.communicate(
+                input=_prepare_stdin(
+                    input_data
+                ),
+                timeout=time_limit,
+            )
         )
 
         return {
@@ -110,9 +131,11 @@ def _execute_process(
         }
 
     except subprocess.TimeoutExpired:
-        # stop infinite loops and collect any output produced before termination
         process.kill()
-        stdout_bytes, stderr_bytes = process.communicate()
+
+        stdout_bytes, stderr_bytes = (
+            process.communicate()
+        )
 
         return {
             "timed_out": True,
@@ -129,14 +152,12 @@ async def run_test_case(
     time_limit: float,
 ) -> dict:
     """
-    run one testcase and return a normalized judge result
+    run one testcase with its own time limit
     """
 
     start_time = time.perf_counter()
 
     try:
-        # asyncio subprocess support depends on the windows event loop
-        # a worker thread with subprocess.Popen works consistently on windows
         execution = await asyncio.to_thread(
             _execute_process,
             submission_directory,
@@ -144,30 +165,49 @@ async def run_test_case(
             time_limit,
         )
 
-        time_used = time.perf_counter() - start_time
-        stdout_bytes = execution["stdout_bytes"]
-        stderr_bytes = execution["stderr_bytes"]
-        exit_code = execution["exit_code"]
+        time_used = (
+            time.perf_counter()
+            - start_time
+        )
+
+        stdout_bytes = execution[
+            "stdout_bytes"
+        ]
+
+        stderr_bytes = execution[
+            "stderr_bytes"
+        ]
+
+        exit_code = execution[
+            "exit_code"
+        ]
 
         if execution["timed_out"]:
             return {
                 "result": "TLE",
-                "stdout": _decode_timeout_output(
+                "stdout": _decode_output(
                     stdout_bytes
                 ),
-                "stderr": _decode_timeout_output(
+                "stderr": _decode_output(
                     stderr_bytes
                 ),
                 "exit_code": exit_code,
                 "time_used": time_used,
                 "memory_used": None,
-                "message": "time limit exceeded",
+                "message": (
+                    "time limit exceeded"
+                ),
             }
 
         try:
-            # normal output must be valid utf-8 according to the assignment
-            stdout = stdout_bytes.decode("utf-8")
-            stderr = stderr_bytes.decode("utf-8")
+            stdout = stdout_bytes.decode(
+                "utf-8"
+            )
+
+            stderr = stderr_bytes.decode(
+                "utf-8"
+            )
+
         except UnicodeDecodeError:
             return {
                 "result": "RE",
@@ -192,7 +232,10 @@ async def run_test_case(
                 "message": "runtime error",
             }
 
-        if compare_output(stdout, expected_output):
+        if compare_output(
+            stdout,
+            expected_output,
+        ):
             return {
                 "result": "AC",
                 "stdout": stdout,
@@ -216,7 +259,6 @@ async def run_test_case(
         }
 
     except Exception as error:
-        # unexpected runner failures are system errors and are logged server side
         logger.exception(
             "runner failed inside %s",
             submission_directory,
@@ -227,9 +269,14 @@ async def run_test_case(
             "stdout": "",
             "stderr": "",
             "exit_code": None,
-            "time_used": time.perf_counter() - start_time,
+            "time_used": (
+                time.perf_counter()
+                - start_time
+            ),
             "memory_used": None,
-            "message": f"{type(error).__name__}: {error}",
+            "message": (
+                f"{type(error).__name__}: {error}"
+            ),
         }
 
 
@@ -237,14 +284,16 @@ def cleanup_submission_directory(
     submission_directory: Path,
 ) -> None:
     """
-    remove all temporary files created for one submission
+    remove temporary submission files
     """
 
     try:
         if submission_directory.exists():
-            shutil.rmtree(submission_directory)
+            shutil.rmtree(
+                submission_directory
+            )
+
     except Exception:
-        # cleanup failure should not replace the real judge result
         logger.exception(
             "failed to remove temporary directory %s",
             submission_directory,

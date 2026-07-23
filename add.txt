@@ -1,0 +1,23 @@
+$loginBody = @{
+    username = "admin"
+    password = "change-me-admin-123"
+} | ConvertTo-Json
+
+Invoke-RestMethod `
+    -Uri "http://127.0.0.1:8000/api/auth/login" `
+    -Method Post `
+    -ContentType "application/json" `
+    -Body $loginBody `
+    -SessionVariable ojSession
+
+
+$createdBackup = Invoke-RestMethod `
+    -Uri "http://127.0.0.1:8000/api/admin/backups" `
+    -Method Post `
+    -WebSession $ojSession
+
+$createdBackup
+
+
+$backupId = $createdBackup.data.backup_id
+$backupId

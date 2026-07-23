@@ -505,3 +505,9 @@ Problem form logic:
 - automatic score mode
 - manual score mode
 - validate that the total score equals 100
+
+
+
+6) finished pytests 
+ minor upgrades 
+ report + intructions

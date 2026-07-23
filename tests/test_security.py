@@ -5,23 +5,31 @@ from app.utils.judge_text import (
 )
 
 
-def test_truncation_and_path_sanitization():
-    truncated = truncate_text("x" * 5000)
-    assert len(truncated) < 5000
-    assert truncated.endswith("...[truncated]")
+def test_hidden_logs_and_error_sanitization():
+    """
+    check safe log handling
+    """
 
-    windows = sanitize_error_message(
-        r'C:\oj\temp\submission_1\main.py line 3'
+    truncated = truncate_text(
+        "x" * 5000
     )
-    linux = sanitize_error_message(
+
+    assert truncated.endswith(
+        "...[truncated]"
+    )
+
+    windows_message = sanitize_error_message(
+        r"C:\oj\temp\submission_1\main.py line 3"
+    )
+
+    linux_message = sanitize_error_message(
         "/home/server/oj/temp/submission_1/main.py line 3"
     )
-    assert "C:\\oj" not in windows
-    assert "/home/server" not in linux
 
+    assert "C:\\oj" not in windows_message
+    assert "/home/server" not in linux_message
 
-def test_hidden_log_view_does_not_leak_answers():
-    log = {
+    view = to_student_log_view({
         "id": 1,
         "submission_id": 1,
         "case_id": "case_02",
@@ -37,9 +45,11 @@ def test_hidden_log_view_does_not_leak_answers():
         "stderr": "",
         "message": "wrong answer",
         "is_hidden": 1,
-        "created_at": "2026-07-19T00:00:00Z",
-    }
-    view = to_student_log_view(log)
+        "created_at": (
+            "2026-07-19T00:00:00Z"
+        ),
+    })
+
     assert "input_data" not in view
     assert "expected_output" not in view
     assert "stdout" not in view

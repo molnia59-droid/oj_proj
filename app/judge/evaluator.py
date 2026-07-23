@@ -10,7 +10,7 @@ from app.judge.runner import (
 
 logger = logging.getLogger(__name__)
 
-# choose the most serious failure among all completed tests
+
 RESULT_PRIORITY = (
     "SE",
     "TLE",
@@ -23,7 +23,7 @@ def choose_overall_result(
     test_results: list[dict],
 ) -> str:
     """
-    choose the final result using the required priority
+    choose the final submission result
     """
 
     if not test_results:
@@ -53,7 +53,7 @@ def _create_test_log(
     awarded_score: int,
 ) -> dict:
     """
-    combine testcase data with its execution result
+    combine testcase data and execution data
     """
 
     return {
@@ -77,22 +77,6 @@ def _create_test_log(
     }
 
 
-def _total_time_limit_result() -> dict:
-    """
-    create a tle result when no total time remains
-    """
-
-    return {
-        "result": "TLE",
-        "stdout": "",
-        "stderr": "",
-        "exit_code": None,
-        "time_used": 0.0,
-        "memory_used": None,
-        "message": "total time limit exceeded",
-    }
-
-
 async def judge_solution(
     submission_id: int,
     source_code: str,
@@ -100,7 +84,7 @@ async def judge_solution(
     test_cases: list[dict],
 ) -> dict:
     """
-    execute tests within one shared submission time limit
+    execute every testcase with its own full time limit
     """
 
     submission_directory: Path | None = None
@@ -109,7 +93,6 @@ async def judge_solution(
     total_time = 0.0
 
     try:
-        # save the submitted source code only once
         submission_directory = (
             prepare_submission_directory(
                 submission_id,
@@ -118,30 +101,19 @@ async def judge_solution(
         )
 
         for test_case in test_cases:
-            # calculate how much time remains for the whole submission
-            remaining_time = (
-                time_limit - total_time
+            # pass the complete time limit to every testcase
+            execution_result = await run_test_case(
+                submission_directory,
+                test_case["input_data"],
+                test_case["expected_output"],
+                time_limit,
             )
 
-            if remaining_time <= 0:
-                execution_result = (
-                    _total_time_limit_result()
-                )
-            else:
-                # each next test receives only the remaining total time
-                execution_result = await run_test_case(
-                    submission_directory,
-                    test_case["input_data"],
-                    test_case["expected_output"],
-                    remaining_time,
-                )
-
-            # add the actual time used by this testcase
+            # total time is only a submission statistic
             total_time += execution_result[
                 "time_used"
             ]
 
-            # award points only for an accepted testcase
             awarded_score = (
                 test_case["score"]
                 if execution_result["result"] == "AC"
@@ -157,10 +129,6 @@ async def judge_solution(
                     awarded_score,
                 )
             )
-
-            # no time remains after a total time limit failure
-            if execution_result["result"] == "TLE":
-                break
 
         return {
             "result": choose_overall_result(
@@ -188,7 +156,6 @@ async def judge_solution(
         }
 
     finally:
-        # remove submitted source files for every result path
         if submission_directory is not None:
             cleanup_submission_directory(
                 submission_directory
