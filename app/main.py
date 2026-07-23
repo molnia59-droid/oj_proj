@@ -20,63 +20,68 @@ from app.services.auth_service import ensure_initial_admin
 from app.utils.exception_handlers import register_exception_handlers
 
 
-# configure standard application logs for local development
+# configure standard application logs
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# resolve the static directory once when the module is imported
+# resolve the static directory
 BASE_DIR = Path(__file__).resolve().parents[1]
 STATIC_DIR = BASE_DIR / "frontend" / "static"
 
 
 @asynccontextmanager
-async def lifespan(
-    _app: FastAPI,
-):
+async def lifespan(_app: FastAPI):
     """
-    prepare the application resources
+    prepare persistent resources on startup
     """
 
     # create the database schema
     init_db()
 
-    # create the initial administrator if required
-    ensure_initial_admin()
+    # create the initial administrator when required
+    admin = ensure_initial_admin()
 
-    # allow the application to process requests
+    logger.info(
+        "initial administrator available as %s",
+        admin["username"],
+    )
+
     yield
 
-# create the central fastapi application
+
+# create the fastapi application
 app = FastAPI(
     title="Mini Online Judge",
     lifespan=lifespan,
 )
 
-# convert validation and unhandled errors into the required response format
+# register shared exception handlers
 register_exception_handlers(app)
 
-# sign session cookies with a configurable secret
+# use an environment variable or the default local secret
 session_secret = os.getenv(
     "SESSION_SECRET",
     "development-only-change-this-secret",
 )
 
+# configure signed session cookies
 app.add_middleware(
     SessionMiddleware,
     secret_key=session_secret,
     session_cookie="oj_session",
+    max_age=60 * 60 * 24 * 7,
     same_site="lax",
     https_only=False,
 )
 
-# expose css and javascript files under the static url
+# expose css and javascript files
 app.mount(
     "/static",
     StaticFiles(directory=STATIC_DIR),
     name="static",
 )
 
-# connect every api and html router in one visible place
+# connect api and html routers
 app.include_router(health_router)
 app.include_router(auth_router)
 app.include_router(problems_router)
