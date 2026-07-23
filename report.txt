@@ -1,6 +1,5 @@
 
-This project is a small Online Judge system developed with FastAPI, SQLite, Jinja2, HTML, CSS, and JavaScript.
-The system allows users to register, login, view programming problems, submit Python solutions, and receive automatic judging results.
+git ref:https://github.com/molnia59-droid/oj_proj.git
 
 The project supports three roles:
 Student:

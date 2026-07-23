@@ -1,4 +1,6 @@
 
+git ref:https://github.com/molnia59-droid/oj_proj.git
+
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
 python -m pip install --upgrade pip
